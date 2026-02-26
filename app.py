@@ -6,14 +6,21 @@ from sentence_transformers import SentenceTransformer
 
 app = Flask(__name__)
 
-# Load index and chunks
+# -----------------------------
+# 1️⃣ Load index and chunks
+# -----------------------------
 index = faiss.read_index("book.index")
 with open("chunks.pkl", "rb") as f:
     chunks = pickle.load(f)
 
-# Load small embedding model
+# -----------------------------
+# 2️⃣ Load embedding model
+# -----------------------------
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
+# -----------------------------
+# 3️⃣ Search endpoint
+# -----------------------------
 @app.route("/search", methods=["POST"])
 def search():
     query = request.json.get("query", "")
@@ -22,5 +29,8 @@ def search():
     results = [chunks[i] for i in I[0]]
     return jsonify({"results": results})
 
+# -----------------------------
+# 4️⃣ Run server
+# -----------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
