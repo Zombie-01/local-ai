@@ -1,7 +1,8 @@
 from flask import Flask, request, jsonify
 import pickle
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 app = Flask(__name__)
 
@@ -9,22 +10,16 @@ app = Flask(__name__)
 with open("chunks.pkl", "rb") as f:
     chunks = pickle.load(f)
 
-# Load model
-model = SentenceTransformer('all-MiniLM-L6-v2')
-
-def cosine_similarity(a, b):
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+# Create TF-IDF vectors for all chunks
+vectorizer = TfidfVectorizer()
+X = vectorizer.fit_transform(chunks)
 
 @app.route("/search", methods=["POST"])
 def search():
     query = request.json.get("query", "")
-    query_vector = model.encode([query])[0]
-    
-    # Compute similarity with all chunks
-    similarities = [cosine_similarity(query_vector, model.encode([chunk])[0]) for chunk in chunks]
-    
-    # Get top 3
-    top_idx = np.argsort(similarities)[-3:][::-1]
+    q_vec = vectorizer.transform([query])
+    sims = cosine_similarity(q_vec, X).flatten()
+    top_idx = np.argsort(sims)[-3:][::-1]
     results = [chunks[i] for i in top_idx]
     return jsonify({"results": results})
 
